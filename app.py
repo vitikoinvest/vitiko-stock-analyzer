@@ -7,7 +7,36 @@ from analysis import indicators, trend, levels
 from data import demo_prices, load_prices, validate_ticker
 
 st.set_page_config(page_title='VITICO STOCK ANALYZER', page_icon='📈', layout='wide')
-st.markdown('''<style>.stApp {background: #0c1424; color: #e6edf7;} h1,h2,h3 {color: #e6edf7;} [data-testid="stMetric"] {background: #172238; padding: 18px; border-radius: 12px;} </style>''', unsafe_allow_html=True)
+st.markdown("""<style>
+.stApp {background: #0C1424; color: #E2E8F0; color-scheme: dark;}
+h1, h2, h3 {color: #FFFFFF;}
+[data-testid="stCaptionContainer"], [data-testid="stMetricLabel"],
+[data-testid="stMarkdownContainer"], label {color: #E2E8F0;}
+[data-testid="stSidebar"] {background: #111D32; color: #E2E8F0;}
+[data-testid="stMetric"] {background: #172238; padding: 18px;
+    border: 1px solid #64748B; border-radius: 12px; height: 100%;}
+[data-testid="stMetricValue"] {color: #FFFFFF;}
+[data-testid="stMetricValue"] > div {white-space: normal; overflow-wrap: anywhere;
+    font-size: clamp(1.25rem, 2.5vw, 2rem);}
+[data-testid="stAlert"] {background: #172238; border: 1px solid #64748B; color: #E2E8F0;}
+[data-testid="stAlert"] p {color: #E2E8F0;}
+[data-testid="stExpander"] {background: #172238; border-color: #64748B;}
+.stTextInput input {color: #FFFFFF; background: #172238;}
+.stTextInput input::placeholder {color: #E2E8F0; opacity: 1;}
+[data-baseweb="select"] > div {color: #FFFFFF; background: #172238; border-color: #64748B;}
+.stButton button, .stFormSubmitButton button {background: #4ADE80;
+    color: #0C1424; border: 1px solid #4ADE80; min-height: 44px; font-weight: 600;}
+.stButton button p, .stFormSubmitButton button p {color: #0C1424;}
+.stButton button:hover, .stFormSubmitButton button:hover {background: #86EFAC;
+    color: #0C1424; border-color: #FFFFFF;}
+button:focus-visible, input:focus-visible {outline: 3px solid #FFFFFF; outline-offset: 3px;}
+a {color: #93C5FD; text-decoration: underline;}
+@media (max-width: 640px) {
+    [data-testid="stMetric"] {padding: 12px;}
+    [data-testid="stMetricValue"] > div {font-size: 1.5rem;}
+    h1 {font-size: 1.8rem; overflow-wrap: anywhere;}
+}
+</style>""", unsafe_allow_html=True)
 st.title('VITICO STOCK ANALYZER')
 st.caption('Una perspectiva clara para invertir a largo plazo · Análisis técnico')
 with st.sidebar:
@@ -54,24 +83,32 @@ cols[0].metric('Último cierre ajustado', f"US$ {last['Close']:,.2f}")
 cols[1].metric('Tendencia estimada', label)
 cols[2].metric('RSI · 14 sesiones', 'No disponible' if pd.isna(last['RSI']) else f"{last['RSI']:.1f}")
 cols[3].metric('Sesiones disponibles', str(len(data)))
+trend_color = '#4ADE80' if label == 'Alcista' else '#F87171' if label == 'Bajista' else '#E2E8F0'
+st.markdown(
+    f'<p style="color:{trend_color};font-weight:600">Tendencia: {label}</p>',
+    unsafe_allow_html=True,
+)
 st.info(explanation)
 years = {'1 año': 1, '2 años': 2, '5 años': 5}[period]
 visible = data.loc[data.index >= data.index[-1] - pd.DateOffset(years=years)]
 support, resistance = levels(data)
 fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=.06, row_heights=[.6,.2,.2], subplot_titles=('Precio y medias móviles · USD', 'RSI · 14 sesiones', 'MACD · 12, 26, 9'))
-for name, title, color in [('Close','Cierre','#60a5fa'),('SMA50','Media 50','#34d399'),('SMA100','Media 100','#fbbf24'),('SMA200','Media 200','#c084fc')]:
-    fig.add_trace(go.Scatter(x=visible.index, y=visible[name], name=title, line=dict(color=color)), row=1, col=1)
-fig.add_hline(y=support, line_dash='dot', line_color='#34d399', row=1, col=1)
+for name, title, color in [('Close','Cierre','#FFFFFF'),('SMA50','Media 50','#4ADE80'),('SMA100','Media 100','#fbbf24'),('SMA200','Media 200','#c084fc')]:
+    fig.add_trace(go.Scatter(x=visible.index, y=visible[name], name=title, line=dict(color=color, width=2)), row=1, col=1)
+fig.add_hline(y=support, line_dash='dot', line_color='#4ADE80', row=1, col=1)
 fig.add_hline(y=resistance, line_dash='dot', line_color='#f87171', row=1, col=1)
 fig.add_trace(go.Scatter(x=visible.index,y=visible['RSI'],name='RSI',line_color='#fbbf24'),row=2,col=1)
 for threshold in (30,70):
-    fig.add_hline(y=threshold,line_dash='dot',row=2,col=1)
+    fig.add_hline(y=threshold,line_dash='dot',line_color='#E2E8F0',row=2,col=1)
 fig.update_yaxes(range=[0,100],row=2,col=1)
-for name, title in [('MACD','MACD'),('Signal','Señal')]:
-    fig.add_trace(go.Scatter(x=visible.index,y=visible[name],name=title),row=3,col=1)
-fig.add_trace(go.Bar(x=visible.index,y=visible['Histogram'],name='Histograma'),row=3,col=1)
-fig.update_layout(template='plotly_dark',height=780, paper_bgcolor='#0c1424',plot_bgcolor='#172238',legend=dict(orientation='h'),margin=dict(l=20,r=20,t=40,b=20))
-st.plotly_chart(fig, use_container_width=True)
+for name, title, color in [('MACD','MACD','#93C5FD'),('Signal','Señal','#FBBF24')]:
+    fig.add_trace(go.Scatter(x=visible.index,y=visible[name],name=title,line=dict(color=color, width=2)),row=3,col=1)
+fig.add_trace(go.Bar(x=visible.index,y=visible['Histogram'],name='Histograma',marker_color=['#4ADE80' if value >= 0 else '#F87171' for value in visible['Histogram']]),row=3,col=1)
+fig.update_layout(template='plotly_dark',height=780, paper_bgcolor='#0c1424',plot_bgcolor='#172238',font=dict(color='#E2E8F0', size=13), legend=dict(orientation='h', y=-.12, x=0, font=dict(color='#E2E8F0'), bgcolor='#0C1424'), hoverlabel=dict(bgcolor='#172238', font_color='#FFFFFF'), margin=dict(l=45,r=15,t=60,b=120))
+fig.update_xaxes(tickfont=dict(color='#E2E8F0'), gridcolor='#334155', linecolor='#64748B', automargin=True)
+fig.update_yaxes(tickfont=dict(color='#E2E8F0'), gridcolor='#334155', zerolinecolor='#64748B', automargin=True)
+fig.update_annotations(font=dict(color='#FFFFFF', size=14))
+st.plotly_chart(fig, use_container_width=True, theme=None)
 a,b = st.columns(2)
 a.metric('Soporte estimado · 60 sesiones', f'US$ {support:,.2f}')
 b.metric('Resistencia estimada · 60 sesiones', f'US$ {resistance:,.2f}')
