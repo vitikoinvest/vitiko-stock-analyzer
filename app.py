@@ -125,3 +125,6 @@ with st.expander('Fuente y limitaciones'):
 La fuente puede sufrir retrasos, errores, cambios de cobertura o límites de consultas. El ticker introducido debe corresponder a una acción estadounidense; esta versión no certifica mercado ni tipo de instrumento. Yahoo también admite otros instrumentos. La caché conserva consultas durante 15 minutos; «Actualizar datos» solicita una nueva consulta. Revisa la fecha de la última sesión para detectar datos antiguos. El modo demo siempre es explícito y nunca se activa automáticamente.
 
 Esta herramienta es educativa. El análisis técnico no incluye valoración, dividendos ni situación financiera y no constituye una recomendación de inversión. Consulta los términos de Yahoo Finance antes de redistribuir datos.''')
+
+from simulator_ui import render_simulator
+render_simulator(prices, symbol, demo)

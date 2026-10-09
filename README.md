@@ -63,6 +63,21 @@ Las pruebas usan series conocidas y simulan un error de la fuente; no necesitan 
 
 ## Estado de validación en el entorno cloud
 
-Se instalaron las dependencias y se comprobó el arranque de Streamlit, su endpoint de salud y las pruebas automatizadas de cálculos e interfaz. La prueba real de MSFT devolvió `CONNECT tunnel failed, response 403`: el proxy de red bloquea Yahoo Finance. Esto impide verificar precios reales en este entorno hasta aplicar la configuración de red; la demo funciona y la aplicación muestra el error sin sustituir datos.
+Se instalaron las dependencias y se comprobó el arranque de Streamlit, su endpoint de salud y las pruebas automatizadas de cálculos e interfaz. La prueba real de MSFT devolvió `CONNECT tunnel failed, response 403`: el proxy de red bloquea Yahoo Finance. Este fue el resultado de la validación inicial. En la validación posterior del simulador la consulta real de MSFT funcionó, devolviendo 1255 sesiones; también se comprobó la interfaz con esa fuente real. La disponibilidad futura sigue dependiendo de Yahoo Finance y de la red.
 
 Se guardó un borrador con instrucciones de instalación/arranque y acceso a `query1.finance.yahoo.com`, `query2.finance.yahoo.com`, `fc.yahoo.com`, `guce.yahoo.com` y `finance.yahoo.com`. Revisa y guarda esos cambios en los ajustes del entorno, y publica el entorno. Después hay que repetir la consulta real para confirmar el acceso; guardar un borrador no cambia la red de la máquina actual.
+
+## SIMULADOR DE ESCENARIOS DE INVERSIÓN
+
+El nuevo módulo está debajo del análisis histórico y conserva todas sus funciones. Compatible con Python 3.12 y Streamlit Community Cloud sin dependencias adicionales. Para desplegar en Community Cloud selecciona este repositorio, la rama que contenga los cambios, el archivo principal `app.py` y Python 3.12. `.streamlit/config.toml` mantiene el tema oscuro.
+
+1. Selecciona **Datos reales · Yahoo Finance**, escribe el ticker y pulsa **Analizar**. El simulador utiliza el mismo historial disponible; si la fuente falla, no se genera una base real falsa. En modo demostración se etiqueta explícitamente toda la base como sintética.
+2. Baja a **SIMULADOR DE ESCENARIOS DE INVERSIÓN**. El precio inicial predeterminado es el último cierre ajustado; puedes cambiarlo sin modificar el historial.
+3. Elige 1, 3, 6 o 12 meses y los cambios porcentuales de los escenarios alcista, bajista y neutral. Se permiten subidas superiores al 100 %; las caídas deben ser menores del 100 % para mantener precios positivos.
+4. Elige trayectoria lineal, compuesta o cambio tardío. Ajusta la oscilación para explorar caminos distintos con el mismo precio final.
+5. Introduce entrada, stop-loss, objetivo y número de acciones. Para una posición compradora se exige `0 < stop < entrada < objetivo`. Se muestra la ganancia potencial, pérdida potencial y beneficio dividido entre riesgo. No se envía ninguna orden.
+6. Compara precios e indicadores finales en la tabla y selecciona un escenario para explorar su RSI, MACD, Bollinger y medias.
+
+**Supuestos explícitos:** trayectorias deterministas, sin probabilidades ni previsión estadística. Lineal interpola el precio; compuesta interpola su logaritmo; cambio tardío usa una interpolación cuadrática. La oscilación aplica dos ciclos sinusoidales a los logaritmos de los precios y conserva los extremos. Se usan días de lunes a viernes hasta la fecha del horizonte, sin excluir festivos de mercado. No se modelan comisiones, impuestos, dividendos, inflación ni saltos de ejecución. Un stop-loss no garantiza una pérdida máxima.
+
+La observación inicial manual se añade un segundo después del último cierre real: representa un salto hipotético y cuenta como una observación adicional para los indicadores. No se sobrescribe ni reescala el historial. RSI, MACD y medias reutilizan los cálculos originales; Bollinger utiliza 20 observaciones y dos desviaciones estándar poblacionales. Sin historial suficiente, los valores no disponibles no se inventan. El histórico aparece con línea continua y el tramo simulado con línea discontinua, acompañado de etiquetas. Estas simulaciones no son predicciones ni recomendaciones.
