@@ -97,3 +97,17 @@ El ejemplo produce US$ 3,508.1964, mostrado como **US$ 3,508.20**. La pantalla u
 La tabla añade **valor futuro hipotético**, resultado y rentabilidad respecto al costo promedio, y diferencia frente al valor actual. Conserva también la columna de resultado frente a la entrada para riesgo/beneficio. Cambiar la entrada o el precio inicial hipotético no cambia tu costo promedio ni el último cierre de mercado. La cantidad fraccionaria se usa tanto para valorar tu posición como para calcular ganancias y pérdidas potenciales al stop/objetivo.
 
 Los resultados positivos aparecen en verde, negativos en rojo y neutrales en gris claro, acompañados de signos y etiquetas. Las cantidades monetarias se presentan con dos decimales, sin redondear cálculos intermedios; para capital y posición se utiliza aritmética decimal. No se recalcula el costo por compras/ventas adicionales: introduce el promedio actualizado que figure en tu registro. El último cierre ajustado puede diferir de la cotización actual o del precio de ejecución de tu broker.
+
+## MI PORTAFOLIO
+
+Abre **MI PORTAFOLIO · administrar mis posiciones**, encima del análisis técnico. Es independiente del ticker del análisis y permanece disponible aunque falle la consulta del análisis principal.
+
+1. Introduce el ticker, la cantidad (hasta cuatro decimales) y el precio promedio. Pulsa **Agregar o guardar cambios**. Prueba MSFT, 9.42 y 372.42: el capital invertido es US$ 3,508.20.
+2. Para editar, introduce el mismo ticker y los nuevos valores; se reemplaza esa posición, sin sumar otra compra. Para eliminar, selecciona el ticker, marca la confirmación y pulsa **Eliminar posición**.
+3. Consulta el resumen, las fechas de la última sesión y de consulta (UTC), la distribución por capital/valor y el gráfico de ganancias y pérdidas. **Actualizar precios del portafolio** renueva la caché de precios públicos (15 minutos).
+4. Pulsa **Exportar mi copia CSV** y guarda el archivo en una ubicación privada. La aplicación no guarda las posiciones en disco ni en GitHub. Si cierras o pierdes la sesión, puedes perder el registro: exporta primero.
+5. Para restaurar una copia, selecciona tu CSV y pulsa **Importar posiciones**. Se agregan tickers nuevos y se actualizan coincidencias; las demás posiciones se conservan. Un CSV inválido se rechaza completo antes de cambiar posiciones.
+
+CSV UTF-8 con comas, punto decimal y columnas en este orden: `ticker,acciones,precio_promedio`. Hasta 500 posiciones y 1 MB por importación. No incluye credenciales ni necesita Interactive Brokers. No subas tus CSV a GitHub: los archivos deben permanecer bajo tu control. La transferencia a Streamlit para importación y su memoria de sesión siguen sujetas a las políticas del proveedor donde despliegues la aplicación.
+
+Si Yahoo Finance no devuelve un cierre, esa posición se muestra como **No disponible**, nunca como cero o como dato demo. El capital invertido incluye todas las posiciones; valor, ganancia/pérdida y rentabilidad incluyen solo aquellas con precio. El resumen se marca **PARCIAL** y la rentabilidad usa únicamente su capital cubierto. No se inventa un valor total completo. Las fechas de cierre permiten detectar historiales antiguos: son cierres ajustados, no cotizaciones en tiempo real. Se mantienen los límites de mercado/moneda de la fuente descritos arriba; el uso previsto son acciones estadounidenses en USD.
