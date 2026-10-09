@@ -2,6 +2,7 @@
 import numpy as np
 import pandas as pd
 from analysis import indicators
+from position import validate_shares
 
 
 def simulate(history, initial, change, months, shape='Lineal', oscillation=0.):
@@ -41,8 +42,9 @@ def simulate(history, initial, change, months, shape='Lineal', oscillation=0.):
 
 
 def risk_reward(entry, stop, target, shares=1):
-    if not all(np.isfinite(v) for v in (entry, stop, target, shares)) or not 0 < stop < entry < target or shares < 1:
-        raise ValueError('Para una posición compradora: 0 < stop-loss < entrada < objetivo; cantidad ≥ 1.')
+    validate_shares(shares)
+    if not all(np.isfinite(v) for v in (entry, stop, target)) or not 0 < stop < entry < target:
+        raise ValueError('Para una posición compradora: 0 < stop-loss < entrada < objetivo; cantidad positiva con hasta cuatro decimales.')
     loss, gain = (entry - stop) * shares, (target - entry) * shares
     return {'Pérdida al stop (USD)': loss, 'Ganancia al objetivo (USD)': gain,
             'Beneficio / riesgo': gain / loss}

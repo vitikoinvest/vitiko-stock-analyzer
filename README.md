@@ -81,3 +81,19 @@ El nuevo módulo está debajo del análisis histórico y conserva todas sus func
 **Supuestos explícitos:** trayectorias deterministas, sin probabilidades ni previsión estadística. Lineal interpola el precio; compuesta interpola su logaritmo; cambio tardío usa una interpolación cuadrática. La oscilación aplica dos ciclos sinusoidales a los logaritmos de los precios y conserva los extremos. Se usan días de lunes a viernes hasta la fecha del horizonte, sin excluir festivos de mercado. No se modelan comisiones, impuestos, dividendos, inflación ni saltos de ejecución. Un stop-loss no garantiza una pérdida máxima.
 
 La observación inicial manual se añade un segundo después del último cierre real: representa un salto hipotético y cuenta como una observación adicional para los indicadores. No se sobrescribe ni reescala el historial. RSI, MACD y medias reutilizan los cálculos originales; Bollinger utiliza 20 observaciones y dos desviaciones estándar poblacionales. Sin historial suficiente, los valores no disponibles no se inventan. El histórico aparece con línea continua y el tramo simulado con línea discontinua, acompañado de etiquetas. Estas simulaciones no son predicciones ni recomendaciones.
+
+## Mi inversión actual: acciones fraccionarias y costo promedio
+
+En el simulador aparece **MI INVERSIÓN ACTUAL**. Introduce tu **Número de acciones** (mínimo 0.0001, hasta cuatro decimales) y **Mi precio promedio de compra (Average Price)**. Son datos manuales; no se conectan cuentas ni se conservan fuera de la sesión. MSFT propone un ejemplo editable de 9.42 acciones y US$ 372.42 de costo promedio, no una posición detectada.
+
+- Capital invertido = cantidad × costo promedio.
+- Valor actual = cantidad × último cierre ajustado disponible de Yahoo Finance.
+- Resultado no realizado = valor actual − capital invertido.
+- Rentabilidad = resultado / capital invertido × 100.
+- Precio de equilibrio = costo promedio, excluyendo comisiones, impuestos y dividendos.
+
+El ejemplo produce US$ 3,508.1964, mostrado como **US$ 3,508.20**. La pantalla usa punto decimal y coma de miles. Puedes cambiar cualquier valor. La demo utiliza precios sintéticos y se identifica expresamente; no representa el valor de una posición real.
+
+La tabla añade **valor futuro hipotético**, resultado y rentabilidad respecto al costo promedio, y diferencia frente al valor actual. Conserva también la columna de resultado frente a la entrada para riesgo/beneficio. Cambiar la entrada o el precio inicial hipotético no cambia tu costo promedio ni el último cierre de mercado. La cantidad fraccionaria se usa tanto para valorar tu posición como para calcular ganancias y pérdidas potenciales al stop/objetivo.
+
+Los resultados positivos aparecen en verde, negativos en rojo y neutrales en gris claro, acompañados de signos y etiquetas. Las cantidades monetarias se presentan con dos decimales, sin redondear cálculos intermedios; para capital y posición se utiliza aritmética decimal. No se recalcula el costo por compras/ventas adicionales: introduce el promedio actualizado que figure en tu registro. El último cierre ajustado puede diferir de la cotización actual o del precio de ejecución de tu broker.
