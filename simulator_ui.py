@@ -4,12 +4,47 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 from simulator import simulate, risk_reward
+from position import position_values
 
 
 def render_simulator(prices, symbol, demo):
     st.header('SIMULADOR DE ESCENARIOS DE INVERSIÓN')
     st.warning('SIMULACIÓN HIPOTÉTICA — No es una predicción, recomendación ni orden de inversión.')
     st.caption(f'Base: {"DEMOSTRACIÓN SINTÉTICA" if demo else "historial real de Yahoo Finance"} · {symbol if not demo else "DEMO"} · Última sesión: {prices.index[-1]:%d/%m/%Y}. Usa el ticker del menú lateral para cambiar de acción.')
+    st.subheader('MI INVERSIÓN ACTUAL')
+    st.caption('Introduce tu posición manualmente. No se conecta ningún broker. Los valores iniciales son un ejemplo editable, no datos de tu cuenta.')
+    shares = st.number_input('Número de acciones', min_value=0.0001, value=9.42 if symbol == 'MSFT' else 1.0,
+                             step=0.0001, format='%.4f', key=f'position_shares_{symbol}_{demo}')
+    average = st.number_input('Mi precio promedio de compra (Average Price)', min_value=0.0001,
+                              value=372.42 if symbol == 'MSFT' else float(prices['Close'].iloc[-1]),
+                              step=0.01, format='%.4f', key=f'position_average_{symbol}_{demo}')
+    st.caption('El costo promedio es independiente del cierre de mercado, del precio inicial hipotético y de la entrada usada para riesgo/beneficio. No se conserva fuera de esta sesión.')
+    market = float(prices['Close'].iloc[-1])
+    try:
+        position = position_values(shares, average, market)
+    except ValueError as error:
+        st.error(str(error))
+        return
+    if demo:
+        st.warning('MI INVERSIÓN ACTUAL · DEMO: la valoración usa precios sintéticos, no el mercado real.')
+    metrics = [
+        ('Ticker', 'DEMO' if demo else symbol), ('Cantidad de acciones', f'{shares:,.4f}'),
+        ('Precio promedio de compra', f'US$ {average:,.4f}'),
+        ('Capital invertido', f'US$ {position["Capital invertido (USD)"]:,.2f}'),
+        ('Último cierre disponible' if not demo else 'Último precio DEMO', f'US$ {market:,.2f}'),
+        ('Valor actual de la posición', f'US$ {position["Valor actual (USD)"]:,.2f}'),
+        ('Ganancia/pérdida no realizada', f'US$ {position["Ganancia/pérdida vs costo promedio (USD)"]:,.2f}'),
+        ('Rentabilidad', f'{position["Rentabilidad vs inversión original (%)"]:,.2f} %'),
+        ('Precio de equilibrio', f'US$ {position["Precio de equilibrio (USD)"]:,.4f}'),
+    ]
+    for offset in range(0, len(metrics), 3):
+        for column, (label, value) in zip(st.columns(3), metrics[offset:offset+3]):
+            column.metric(label, value)
+    pnl = position['Ganancia/pérdida vs costo promedio (USD)']
+    color = '#4ADE80' if pnl > 0 else '#F87171' if pnl < 0 else '#E2E8F0'
+    state = 'Ganancia' if pnl > 0 else 'Pérdida' if pnl < 0 else 'Sin ganancia ni pérdida'
+    st.markdown(f'<p style="color:{color};font-weight:600">{state}: US$ {pnl:,.2f} · {position["Rentabilidad vs inversión original (%)"]:,.2f} %</p>', unsafe_allow_html=True)
+    st.caption('Valoración al último cierre ajustado disponible, no una cotización en tiempo real. Capital y resultado se calculan sin redondear los valores intermedios; importes mostrados con dos decimales. El equilibrio equivale al costo promedio sin comisiones, impuestos ni dividendos. Los ajustes históricos de Yahoo pueden diferir de los precios de ejecución del broker.')
     st.markdown('Ajusta el precio inicial y los supuestos. Los tres escenarios parten del mismo historial y se recalculan automáticamente.')
     initial = st.number_input('Precio inicial hipotético (USD)', min_value=.01, value=float(prices['Close'].iloc[-1]), key=f'sim_initial_{symbol}_{demo}')
     months = st.selectbox('Horizonte (meses)', [1, 3, 6, 12], index=1)
@@ -49,7 +84,6 @@ def render_simulator(prices, symbol, demo):
     entry = st.number_input('Precio de entrada (USD)', min_value=.01, value=initial, key=f'sim_entry_{symbol}_{demo}')
     stop = st.number_input('Stop-loss (USD)', min_value=.001, value=initial * .9, key=f'sim_stop_{symbol}_{demo}')
     target = st.number_input('Objetivo (USD)', min_value=.01, value=initial * 1.2, key=f'sim_target_{symbol}_{demo}')
-    shares = st.number_input('Número de acciones', min_value=1, value=1, step=1)
     try:
         risk = risk_reward(entry, stop, target, shares)
         for column, (name, value) in zip(st.columns(3), risk.items()):
@@ -60,11 +94,23 @@ def render_simulator(prices, symbol, demo):
     rows = []
     for name, result in results.items():
         last = result.iloc[-1]
+        try:
+            future_position = position_values(shares, average, market, float(last['Close']))
+        except ValueError as error:
+            st.error(str(error))
+            return
         rows.append({'Escenario SIMULADO': name, 'Cambio desde inicio (%)': changes[name],
-                     'Precio final (USD)': last['Close'], 'Ganancia/pérdida vs entrada (USD)': (last['Close'] - entry) * shares,
+                     'Precio final (USD)': last['Close'],
+                     **{key: future_position[key] for key in ('Valor futuro hipotético (USD)', 'Ganancia/pérdida vs costo promedio (USD)', 'Rentabilidad vs inversión original (%)', 'Diferencia vs valor actual (USD)')}, 'Ganancia/pérdida vs entrada (USD)': (last['Close'] - entry) * shares,
                      **{field: last[field] for field in ('RSI', 'MACD', 'Signal', 'SMA50', 'SMA100', 'SMA200', 'BBInferior', 'BBMedia', 'BBSuperior')}})
     st.subheader('Comparación al final del horizonte')
-    st.dataframe(pd.DataFrame(rows).set_index('Escenario SIMULADO').style.format(precision=2, na_rep='No disponible'), width='stretch')
+    table = pd.DataFrame(rows).set_index('Escenario SIMULADO')
+    def result_color(value):
+        return 'color: ' + ('#4ADE80' if value > 0 else '#F87171' if value < 0 else '#E2E8F0')
+    signed = ['Ganancia/pérdida vs costo promedio (USD)', 'Rentabilidad vs inversión original (%)',
+              'Diferencia vs valor actual (USD)', 'Ganancia/pérdida vs entrada (USD)']
+    st.dataframe(table.style.format(precision=2, na_rep='No disponible').map(result_color, subset=signed), width='stretch')
+    st.caption('Resultados HIPOTÉTICOS sobre tu cantidad y costo promedio. Un escenario alcista puede seguir por debajo de tu costo y uno bajista puede conservar ganancias. La columna vs entrada mantiene el cálculo separado de riesgo/beneficio.')
     selected = st.selectbox('Escenario para explorar indicadores', list(results))
     selected_data = results[selected]
     selected_data = selected_data.loc[prices.index[-min(126, len(prices))]:]
