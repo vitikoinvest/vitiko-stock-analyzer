@@ -53,6 +53,10 @@ with st.sidebar:
 def fetch(symbol):
     return load_prices(symbol), datetime.now(timezone.utc)
 
+from portfolio_ui import render_portfolio
+with st.expander('MI PORTAFOLIO · administrar mis posiciones', expanded=False):
+    render_portfolio()
+
 if refresh:
     fetch.clear()
 try:
