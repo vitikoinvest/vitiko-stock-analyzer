@@ -96,3 +96,6 @@ def render_portfolio():
     for figure, title in zip(figures, titles):
         figure.update_layout(title=title, template='plotly_dark', paper_bgcolor='#0C1424', plot_bgcolor='#172238', font=dict(color='#E2E8F0'), legend=dict(orientation='h'))
         st.plotly_chart(figure, use_container_width=True, theme=None)
+    from intelligent_ui import render_intelligence
+    with st.expander('ANÁLISIS INTELIGENTE DE PORTAFOLIO', expanded=False):
+        render_intelligence(positions, quotes)
