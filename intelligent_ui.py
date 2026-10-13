@@ -10,17 +10,20 @@ from portfolio_analysis import weights, historical_risk, allocation, dividend_es
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def company_data(symbol):
-    history=load_prices(symbol)
-    history=history.copy()
-    history.index=pd.to_datetime(history.index.date)
+    from yahoo_dividends import classify_dividend
+    history=None
     sector=None
-    annual=None
+    annual={'annual':None,'basis':'No disponible: falló la consulta de Yahoo Finance','field':None}
+    # Un fallo del historial no debe descartar metadata de dividendos disponible.
+    try:
+        history=load_prices(symbol).copy()
+        history.index=pd.to_datetime(history.index.date)
+    except Exception:
+        pass
     try:
         info=yf.Ticker(symbol).get_info()
         sector=info.get('sector') or None
-        value=info.get('dividendRate')
-        if isinstance(value,(int,float)) and np.isfinite(value) and value>=0:
-            annual=float(value)
+        annual=classify_dividend(info)
     except Exception:
         pass
     return history, sector, annual, datetime.now(timezone.utc).isoformat()
@@ -64,7 +67,7 @@ def render_intelligence(positions, quotes):
     st.caption('Los sectores ausentes se agrupan como No disponible, no como un sector conocido. Los porcentajes se basan en el valor actual, no en el costo.')
     risk=None
     st.subheader('Riesgo histórico')
-    if set(histories)==set(positions):
+    if set(histories)==set(positions) and all(frame is not None for frame in histories.values()):
         try:
             risk=historical_risk(histories,w)
             a,b=st.columns(2)

@@ -76,7 +76,9 @@ def distribution_result(shares, average, market, manual=None, yahoo=None):
     if manual is not None:
         try: record=validate_record(manual)
         except (ValueError,TypeError,KeyError): pass
-    annual=record['annual'] if record else yahoo
+    yahoo_metadata = yahoo if isinstance(yahoo, dict) else {}
+    automatic = yahoo_metadata.get('annual') if isinstance(yahoo, dict) else yahoo
+    annual=record['annual'] if record else automatic
     if annual is None or isinstance(annual, bool) or not isinstance(annual,(int,float)) or not math.isfinite(annual) or annual<0:
         return None
     per_share=Decimal(str(annual))
@@ -86,7 +88,7 @@ def distribution_result(shares, average, market, manual=None, yahoo=None):
             'Yield calculado al cierre (%)':float(per_share/positive(market,'El cierre')*100) if market is not None else None,
             'Yield on cost (%)':float(per_share/average*100),
             'Yield TTM reportado (%)':record.get('reported_yield') if record else None,
-            'Fuente':record['source'] if record else 'Yahoo Finance · dividendRate (no TTM confirmado)',
-            'Base': 'TTM manual aportado por el usuario · no verificado automáticamente' if record else 'Tasa anual reportada, no TTM confirmado',
+            'Fuente':record['source'] if record else 'Yahoo Finance · ' + str(yahoo_metadata.get('field') or 'dividendRate (no TTM confirmado)'),
+            'Base': 'TTM manual aportado por el usuario · no verificado automáticamente' if record else yahoo_metadata.get('basis','Tasa anual reportada, no TTM confirmado'),
             'Actualización manual':record['updated'] if record else None,
             'Frecuencia habitual':record.get('frequency','No especificada') if record else 'No disponible'}
