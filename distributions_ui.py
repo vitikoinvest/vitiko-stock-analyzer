@@ -42,7 +42,7 @@ def render_distributions(positions, quotes, yahoo):
     rows=[]; payments=[]
     for symbol,item in positions.items():
         result=distribution_result(item['acciones'],item['precio_promedio'],quotes.get(symbol),records.get(symbol),yahoo.get(symbol))
-        rows.append({'Ticker':symbol,**(result or {'Base':'No disponible'})})
+        rows.append({'Ticker':symbol,**(result or {'Base':yahoo.get(symbol,{}).get('basis','No disponible') if isinstance(yahoo.get(symbol),dict) else 'No disponible'})})
         manual=records.get(symbol)
         if manual:
             try: manual=validate_record(manual)
@@ -50,12 +50,16 @@ def render_distributions(positions, quotes, yahoo):
         if manual and manual.get('payment') is not None:
             payments.append({'Ticker':symbol,'Distribución confirmada por acción (USD)':manual['payment'],'Ex-dividendo':manual['ex_date'],'Fecha de pago':manual['pay_date'],'Fuente':manual['source'],'Actualización':manual['updated']})
     table=pd.DataFrame(rows)
+    for column in ('Yield TTM reportado (%)','Actualización manual','Frecuencia habitual'):
+        if column in table:
+            table[column]=table[column].map(lambda value: 'No disponible / no aplica' if pd.isna(value) else (f'{value:.4f}' if column == 'Yield TTM reportado (%)' else str(value)))
     numeric=table.select_dtypes('number').columns
     st.dataframe(table.style.format({key:'{:,.4f}' for key in numeric},na_rep='No disponible'),width='stretch')
     if 'Ingreso anual de referencia (USD)' in table:
         known=table['Ingreso anual de referencia (USD)'].dropna()
         if len(known):
             st.write(f'Ingreso anual de referencia: US$ {known.sum():,.2f} · promedio mensual: US$ {known.sum()/12:,.2f}'+(' · TOTAL PARCIAL' if len(known)<len(rows) else ''))
+    st.caption('Las tasas automáticas incluyen el campo de Yahoo utilizado. Si dividendRate falta, se utiliza trailingAnnualDividendRate solo si es válido, identificado como TTM reportado por Yahoo, no verificado independientemente. No se deriva un dividendo de porcentajes ni de precios.')
     st.caption('Los registros manuales válidos tienen prioridad para TTM. El yield reportado corresponde al dato aportado y no se recalcula: puede diferir del yield al último cierre. Yield on cost = distribución anual por acción / costo promedio. Yahoo dividendRate no se etiqueta como TTM histórico confirmado.')
     st.markdown('**Distribuciones confirmadas · separadas del promedio TTM**')
     if payments: st.dataframe(pd.DataFrame(payments),width='stretch')

@@ -143,3 +143,9 @@ BTCI incluye aparte el pago confirmado por acción de US$ 0.7184, ex-dividendo 1
 Abre **Actualizar datos manuales sin editar código** para cambiar importes, fuente, fecha, frecuencia y pago confirmado. Exporta **datos de distribuciones JSON** para conservar tus modificaciones y restáuralos desde ese mismo panel después de perder la sesión. La importación valida el archivo completo antes de actualizar registros; no toca el CSV de posiciones. Estos cambios son por sesión, no globales ni persistentes en el servidor. Conserva el JSON bajo tu control y no lo publiques en GitHub.
 
 Las distribuciones son históricas y variables; no garantizan ingresos futuros. El promedio mensual no describe fechas de cobro. Cifras brutas sin impuestos ni retenciones. Pruebas cubren BTCI/TLT, fracciones, prioridad manual, fallback, fechas, edición sin cambiar posiciones y recálculo incluso sin precios.
+
+### Dividendos automáticos para acciones
+
+La consulta de tasas de Yahoo es independiente del éxito del historial de precios. Se utiliza `dividendRate` cuando es válido y se identifica como **tasa anual indicativa**. Si falta, se permite `trailingAnnualDividendRate`, etiquetado como **TTM reportado por Yahoo, no verificado independientemente**. La aplicación no deriva importes del yield ni fija dividendos por ticker. Un valor ausente, booleano o inválido permanece no disponible; un cero explícito válido se conserva.
+
+Los manuales BTCI/TLT siguen teniendo prioridad y se identifican como datos aportados por el usuario, no verificados automáticamente. Los errores de consulta de dividendos se muestran como no disponibles con su motivo; para reintentar una consulta almacenada en caché, pulsa **Consultar / actualizar análisis inteligente**. El yield TTM reportado y la fecha manual no aplican a tasas automáticas y así se indica, en lugar de mostrar `None`. El pago confirmado no se suma a la distribución anual de referencia.
