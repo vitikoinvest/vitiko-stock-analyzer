@@ -9,24 +9,47 @@ from portfolio_analysis import weights, historical_risk, allocation, dividend_es
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
+def _company_history(symbol):
+    history=load_prices(symbol).copy()
+    history.index=pd.to_datetime(history.index.date)
+    return history
+
+
+def _metadata_client():
+    from yahoo_metadata import MetadataClient
+    if 'yahoo_metadata_client' not in st.session_state:
+        st.session_state['yahoo_metadata_client']=MetadataClient(lambda symbol: yf.Ticker(symbol).get_info())
+    return st.session_state['yahoo_metadata_client']
+
+
 def company_data(symbol):
     from yahoo_dividends import classify_dividend
+    from yahoo_metadata import LOGGER, classify_error
     history=None
-    sector=None
-    annual={'annual':None,'basis':'No disponible: falló la consulta de Yahoo Finance','field':None}
-    # Un fallo del historial no debe descartar metadata de dividendos disponible.
     try:
-        history=load_prices(symbol).copy()
-        history.index=pd.to_datetime(history.index.date)
-    except Exception:
-        pass
-    try:
-        info=yf.Ticker(symbol).get_info()
-        sector=info.get('sector') or None
-        annual=classify_dividend(info)
-    except Exception:
-        pass
-    return history, sector, annual, datetime.now(timezone.utc).isoformat()
+        history=_company_history(symbol)
+    except Exception as error:
+        category,status,_=classify_error(error)
+        LOGGER.warning('Yahoo history ticker=%s exception=%s http=%s category=%s',symbol,type(error).__name__,status,category)
+    result=_metadata_client().get(symbol)
+    info=result.info or {}
+    annual=classify_dividend(info)
+    sector=info.get('sector') if isinstance(info.get('sector'),str) and info['sector'].strip() else None
+    if result.info is None:
+        annual['basis']='No disponible: '+str(result.error)
+    elif result.stale:
+        annual['basis']+=' · DESACTUALIZADO'
+    annual.update({'fetched_at':result.fetched_at,'checked_at':result.checked_at,'stale':result.stale,
+                  'error':result.error,'exception_type':result.exception_type,'http_status':result.http_status})
+    return history,sector,annual,result.fetched_at or result.checked_at
+
+
+def _refresh_company_data():
+    _company_history.clear()
+    _metadata_client().refresh()
+
+
+company_data.clear=_refresh_company_data
 
 
 def render_intelligence(positions, quotes):
@@ -44,7 +67,14 @@ def render_intelligence(positions, quotes):
             histories[symbol], sectors[symbol], dividends[symbol], timestamps[symbol]=company_data(symbol)
         except Exception:
             st.warning(f'{symbol}: historial, sector y dividendos no disponibles.')
-    st.dataframe(pd.DataFrame([{'Ticker':symbol,'Sector':sectors.get(symbol) or 'No disponible','Consulta UTC':timestamps.get(symbol,'No disponible')} for symbol in positions]),width='stretch')
+    for symbol, metadata in dividends.items():
+        if isinstance(metadata,dict) and metadata.get('error'):
+            status=metadata.get('http_status')
+            st.warning(f"{symbol}: {metadata['error']} · {metadata.get('exception_type')} · HTTP {status if status is not None else 'no disponible'}. " + (f"Se conserva el último dato válido de {metadata.get('fetched_at')} (DESACTUALIZADO)." if metadata.get('stale') else 'No hay dato anterior disponible.'))
+    st.dataframe(pd.DataFrame([{'Ticker':symbol,'Sector':sectors.get(symbol) or 'No disponible',
+        'Fecha del dato UTC':timestamps.get(symbol,'No disponible'),
+        'Último intento UTC':dividends[symbol].get('checked_at','No disponible') if isinstance(dividends.get(symbol),dict) else timestamps.get(symbol,'No disponible'),
+        'Estado':('Desactualizado' if dividends[symbol].get('stale') else 'No disponible' if dividends[symbol].get('error') else 'Disponible / campos ausentes') if isinstance(dividends.get(symbol),dict) else 'Disponible'} for symbol in positions]),width='stretch')
     from distributions_ui import render_distributions
     render_distributions(positions, quotes, dividends)
     if set(quotes)!=set(positions):
