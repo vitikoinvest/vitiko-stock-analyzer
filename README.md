@@ -124,3 +124,22 @@ Dentro de MI PORTAFOLIO, agrega posiciones y abre **ANÁLISIS INTELIGENTE DE POR
 - **Puntuación:** configura referencias y pesos para concentración empresarial, sectorial, volatilidad y caída. Cada factor puntúa `100 × max(0, 1 − valor/(2 × referencia))`, limitado a 0–100; la suma es una media ponderada. El valor de referencia equivale a 50 puntos. La fórmula favorece menores concentraciones y variaciones históricas, sin garantizar seguridad o rentabilidad. No se calcula si faltan riesgo o sectores; al menos un peso debe ser positivo.
 
 Los datos públicos del módulo se guardan en caché durante una hora, con fecha UTC de consulta visible; los precios de valoración del portafolio tienen su propia caché de 15 minutos. Actualiza ambos módulos para renovar ambos conjuntos. Yahoo Finance puede omitir campos o restringir consultas. El uso previsto sigue siendo acciones estadounidenses en USD y no se certifica el instrumento ni la moneda. No se requieren nuevas dependencias.
+
+## Corrección de distribuciones TTM: BTCI y TLT
+
+En ANÁLISIS INTELIGENTE, la sección **Distribuciones TTM y dividendos** prioriza los datos manuales válidos sobre Yahoo Finance. Valores iniciales aportados por el usuario desde Interactive Brokers:
+
+| ETF | Anual TTM por acción | Yield TTM reportado | Frecuencia |
+| --- | ---: | ---: | --- |
+| BTCI | US$ 10.14 | 30.36 % | No especificada |
+| TLT | US$ 3.89 | 4.99 % | Mensual |
+
+Fecha de incorporación/actualización inicial: 13/10/2026. No es una verificación independiente del broker ni una fecha de cierre del período TTM. El yield reportado se conserva separado del yield calculado con el último cierre de Yahoo; pueden diferir por fechas y precios de referencia.
+
+Ingreso anual de referencia = acciones actuales × distribución TTM por acción; promedio mensual histórico = anual/12; yield on cost = TTM por acción / costo promedio × 100. Cambiar las acciones del portafolio recalcula automáticamente las cifras sin sobrescribir ninguna posición. Si falta un precio, estos ingresos y el yield on cost siguen disponibles; el yield al cierre queda no disponible. Para otros tickers, Yahoo dividendRate se identifica como tasa anual reportada, no como TTM confirmado.
+
+BTCI incluye aparte el pago confirmado por acción de US$ 0.7184, ex-dividendo 16/09/2026 y pago 18/09/2026. No se suma otra vez al TTM ni se calcula un cobro personal usando acciones actuales: la elegibilidad depende de las acciones con derecho al pago en aquella fecha. Para TLT no se inventa un pago confirmado.
+
+Abre **Actualizar datos manuales sin editar código** para cambiar importes, fuente, fecha, frecuencia y pago confirmado. Exporta **datos de distribuciones JSON** para conservar tus modificaciones y restáuralos desde ese mismo panel después de perder la sesión. La importación valida el archivo completo antes de actualizar registros; no toca el CSV de posiciones. Estos cambios son por sesión, no globales ni persistentes en el servidor. Conserva el JSON bajo tu control y no lo publiques en GitHub.
+
+Las distribuciones son históricas y variables; no garantizan ingresos futuros. El promedio mensual no describe fechas de cobro. Cifras brutas sin impuestos ni retenciones. Pruebas cubren BTCI/TLT, fracciones, prioridad manual, fallback, fechas, edición sin cambiar posiciones y recálculo incluso sin precios.

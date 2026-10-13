@@ -42,6 +42,8 @@ def render_intelligence(positions, quotes):
         except Exception:
             st.warning(f'{symbol}: historial, sector y dividendos no disponibles.')
     st.dataframe(pd.DataFrame([{'Ticker':symbol,'Sector':sectors.get(symbol) or 'No disponible','Consulta UTC':timestamps.get(symbol,'No disponible')} for symbol in positions]),width='stretch')
+    from distributions_ui import render_distributions
+    render_distributions(positions, quotes, dividends)
     if set(quotes)!=set(positions):
         st.warning('Faltan precios: no se calculan pesos completos, riesgo, rebalanceo ni puntuación. Las posiciones originales se conservan.')
         return
@@ -81,17 +83,6 @@ def render_intelligence(positions, quotes):
     total=sum(values.values())
     st.dataframe(pd.DataFrame([{'Caída HIPOTÉTICA (%)':drop,'Valor posterior (USD)':total*(1-drop/100),'Pérdida (USD)':total*drop/100} for drop in (10,20,30)]),width='stretch')
     st.caption('Choques simultáneos uniformes, sin probabilidades ni predicción. No representan el máximo riesgo posible.')
-    st.subheader('Dividendos estimados')
-    rows=[]
-    for symbol,item in positions.items():
-        estimate=dividend_estimate(float(item['acciones']),float(item['precio_promedio']),quotes[symbol],dividends.get(symbol))
-        rows.append({'Ticker':symbol,**(estimate or {key:np.nan for key in ('Anual estimado (USD)','Promedio mensual (USD)','Yield (%)','Yield on cost (%)')})})
-    dividend_table=pd.DataFrame(rows)
-    st.dataframe(dividend_table.style.format({column:'{:,.2f}' for column in dividend_table.columns if column!='Ticker'},na_rep='No disponible'),width='stretch')
-    known=dividend_table['Anual estimado (USD)'].dropna()
-    if not known.empty:
-        st.write(f'Ingreso anual estimado disponible: US$ {known.sum():,.2f} · promedio mensual: US$ {known.sum()/12:,.2f}'+(' · TOTAL PARCIAL' if len(known)<len(rows) else ''))
-    st.warning('Dividendos variables y no garantizados. Se usa dividendRate anual por acción reportado por Yahoo; un campo ausente no equivale a cero. El promedio mensual es anual/12, no un calendario de pagos. No incluye retenciones ni efectos de divisa.')
     st.subheader('Rebalanceo solo con nuevas aportaciones')
     cash=st.number_input('Aportación adicional hipotética (USD)',min_value=0.,value=0.,step=100.)
     method=st.radio('Alternativa matemática',['Reparto proporcional (mantiene pesos)','Priorizar posiciones menores (reduce concentración)'])
