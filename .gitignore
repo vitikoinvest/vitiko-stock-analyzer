@@ -5,3 +5,5 @@ __pycache__/
 .streamlit/secrets.toml
 # Copias privadas exportadas por MI PORTAFOLIO
 mi_portafolio*.csv
+# Copias de datos manuales de distribuciones
+mis_distribuciones*.json
