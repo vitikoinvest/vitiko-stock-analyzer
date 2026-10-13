@@ -8,6 +8,7 @@ from distributions import DEFAULTS, validate_record, load_manual, distribution_r
 
 def render_distributions(positions, quotes, yahoo):
     st.subheader('Distribuciones TTM y dividendos')
+    st.caption('Datos manuales aportados por el usuario con fuente declarada; no se verifican automáticamente ni se consulta una cuenta de Interactive Brokers.')
     records=st.session_state.setdefault('manual_distributions',deepcopy(DEFAULTS))
     with st.expander('Actualizar datos manuales sin editar código'):
         st.caption('La fecha inicial 13/10/2026 es la fecha de incorporación de los datos facilitados por el usuario, no una comprobación independiente con Interactive Brokers. Los cambios se guardan en esta sesión; exporta tu copia JSON para conservarlos.')

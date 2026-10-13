@@ -59,3 +59,37 @@ class DistributionTests(unittest.TestCase):
             self.assertFalse(app.exception)
             self.assertEqual(distribution_table().iloc[0]['Ingreso anual de referencia (USD)'],12.)
             self.assertEqual(app.session_state['portfolio_positions'],original)
+
+    def test_reject_boolean_numeric_fields(self):
+        for field in ('annual', 'reported_yield', 'payment'):
+            for value in (True, False):
+                record=dict(DEFAULTS['BTCI'], **{field:value})
+                with self.subTest(field=field,value=value):
+                    with self.assertRaises(ValueError): validate_record(record)
+                    with self.assertRaises(ValueError): load_manual(json.dumps({'BTCI':record}).encode())
+        self.assertIsNone(distribution_result(1,100,100,None,True))
+
+    def test_date_types_invalid_and_chronological_comparison(self):
+        for field in ('updated','ex_date','pay_date'):
+            for value in (True,False,123,{},[], '', '2026-02-30','not-a-date'):
+                with self.subTest(field=field,value=value):
+                    with self.assertRaises(ValueError):
+                        validate_record(dict(DEFAULTS['BTCI'], **{field:value}))
+        # Dos representaciones ISO: ordenar cadenas daría el resultado incorrecto.
+        good=validate_record(dict(DEFAULTS['BTCI'],ex_date='20260916',pay_date='2026-09-18'))
+        self.assertEqual(good['ex_date'],'2026-09-16')
+        with self.assertRaises(ValueError):
+            validate_record(dict(DEFAULTS['BTCI'],ex_date='20260919',pay_date='2026-09-18'))
+        for record in (None,[],True):
+            with self.assertRaises(ValueError): validate_record(record)
+
+    def test_confirmed_payment_not_added_to_ttm(self):
+        original=deepcopy(DEFAULTS['BTCI'])
+        first=distribution_result(9.42,50,40,original)
+        changed=dict(original,payment=100.)
+        second=distribution_result(9.42,50,40,changed)
+        self.assertEqual(first,second)
+        self.assertAlmostEqual(first['Ingreso anual de referencia (USD)'],9.42*10.14)
+        self.assertAlmostEqual(first['Promedio mensual (USD)'],9.42*10.14/12)
+        self.assertIn('no verificado automáticamente',first['Base'])
+        self.assertEqual(original,DEFAULTS['BTCI'])

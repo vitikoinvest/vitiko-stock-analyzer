@@ -16,27 +16,44 @@ DEFAULTS = {
 
 
 def validate_record(record):
+    if not isinstance(record, dict):
+        raise ValueError('El registro de distribuciones debe ser un objeto.')
     data = dict(record)
     for field in ('annual','reported_yield','payment'):
         value = data.get(field)
         if field == 'annual' and value is None:
             raise ValueError('La distribución TTM es obligatoria.')
         if value is not None:
-            if not isinstance(value,(int,float)) or not math.isfinite(value) or value < 0:
+            if isinstance(value, bool) or not isinstance(value,(int,float)) or not math.isfinite(value) or value < 0:
                 raise ValueError('Distribuciones y porcentajes deben ser finitos y no negativos.')
     if not isinstance(data.get('source'),str) or not data['source'].strip():
         raise ValueError('Indica una fuente.')
-    updated=date.fromisoformat(data['updated'])
+    def parse_date(field, required=False):
+        value = data.get(field)
+        if value is None and not required:
+            return None
+        try:
+            if not isinstance(value, str):
+                raise ValueError('Se requiere una fecha textual.')
+            return date.fromisoformat(value)
+        except (TypeError, ValueError) as error:
+            raise ValueError(f'Fecha inválida en {field}: usa AAAA-MM-DD.') from error
+
+    updated = parse_date('updated', required=True)
     if updated > date.today():
         raise ValueError('La fecha de actualización no puede ser futura.')
-    for field in ('ex_date','pay_date'):
-        if data.get(field): date.fromisoformat(data[field])
-    if data.get('payment') is not None and not all(data.get(field) for field in ('ex_date','pay_date')):
+    ex_date = parse_date('ex_date')
+    pay_date = parse_date('pay_date')
+    if data.get('payment') is not None and (ex_date is None or pay_date is None):
         raise ValueError('Un pago confirmado requiere fecha ex-dividendo y fecha de pago.')
-    if data.get('payment') is None and any(data.get(field) for field in ('ex_date','pay_date')):
+    if data.get('payment') is None and (ex_date is not None or pay_date is not None):
         raise ValueError('Las fechas de pago requieren un importe confirmado.')
-    if data.get('ex_date') and data['pay_date'] < data['ex_date']:
+    if ex_date is not None and pay_date is not None and pay_date < ex_date:
         raise ValueError('El pago no puede preceder a la fecha ex-dividendo.')
+    # Conserva cadenas ISO canónicas para formularios y exportación JSON.
+    data['updated'] = updated.isoformat()
+    data['ex_date'] = ex_date.isoformat() if ex_date else None
+    data['pay_date'] = pay_date.isoformat() if pay_date else None
     return data
 
 
@@ -60,7 +77,7 @@ def distribution_result(shares, average, market, manual=None, yahoo=None):
         try: record=validate_record(manual)
         except (ValueError,TypeError,KeyError): pass
     annual=record['annual'] if record else yahoo
-    if annual is None or not isinstance(annual,(int,float)) or not math.isfinite(annual) or annual<0:
+    if annual is None or isinstance(annual, bool) or not isinstance(annual,(int,float)) or not math.isfinite(annual) or annual<0:
         return None
     per_share=Decimal(str(annual))
     income=quantity*per_share
@@ -70,6 +87,6 @@ def distribution_result(shares, average, market, manual=None, yahoo=None):
             'Yield on cost (%)':float(per_share/average*100),
             'Yield TTM reportado (%)':record.get('reported_yield') if record else None,
             'Fuente':record['source'] if record else 'Yahoo Finance · dividendRate (no TTM confirmado)',
-            'Base': 'TTM histórico manual' if record else 'Tasa anual reportada, no TTM confirmado',
+            'Base': 'TTM manual aportado por el usuario · no verificado automáticamente' if record else 'Tasa anual reportada, no TTM confirmado',
             'Actualización manual':record['updated'] if record else None,
             'Frecuencia habitual':record.get('frequency','No especificada') if record else 'No disponible'}
