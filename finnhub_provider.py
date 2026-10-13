@@ -57,7 +57,30 @@ def transport(key,symbol,endpoint):
  # Solo campos permitidos de perfil y valores numéricos de métricas.
  if endpoint=='profile':
   return {field:(payload[field] if isinstance(payload[field],(str,int,float)) and not isinstance(payload[field],bool) and (not key or key not in str(payload[field])) else None) for field in ('name','ticker','currency','exchange','finnhubIndustry','marketCapitalization','shareOutstanding') if field in payload}
- return {field:(value if isinstance(value,(int,float)) and not isinstance(value,bool) and math.isfinite(value) else None) for field,value in payload.items() if isinstance(field,str) and field.replace('/','').replace('_','').replace('-','').isalnum() and len(field)<100 and (not key or key not in field)}
+ clean = {field:(value if isinstance(value,(int,float)) and not isinstance(value,bool) and math.isfinite(value) else None) for field,value in payload.items() if isinstance(field,str) and field.replace('/','').replace('_','').replace('-','').isalnum() and len(field)<100 and (not key or key not in field)}
+ # Mantiene series fiscales explícitas sin asignar sus fechas a métricas snapshot.
+ from datetime import date
+ series={}
+ source_series=result.get('series',{})
+ if isinstance(source_series,dict):
+  for cadence in ('annual','quarterly'):
+   fields=source_series.get(cadence,{})
+   if not isinstance(fields,dict):continue
+   selected={}
+   for field,items in fields.items():
+    if not isinstance(field,str) or not field.isalnum() or len(field)>100 or (key and key in field) or not isinstance(items,list):continue
+    points=[]
+    for item in items[:100]:
+     if not isinstance(item,dict):continue
+     value=item.get('v')
+     if not isinstance(value,(int,float)) or isinstance(value,bool) or not math.isfinite(value):continue
+     try:period=date.fromisoformat(item['period']).isoformat()
+     except (KeyError,ValueError,TypeError):continue
+     points.append({'period':period,'v':value})
+    if points:selected[field]=points
+   if selected:series[cadence]=selected
+ if series:clean['__series__']=series
+ return clean
 
 
 class Budget:

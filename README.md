@@ -189,3 +189,9 @@ Validación real opcional desde la raíz (usa la clave del entorno, no consulta 
 ```
 
 Sin clave imprime diez resultados no comprobados, sin solicitudes. Con clave solicita solo los dos endpoints para los cinco tickers. No guardes informes privados en GitHub. Las pruebas automatizadas usan respuestas simuladas sin requerir claves ni red; acceso real del usuario a MSFT confirmado, valores/unidades y cobertura real de los otros tickers pendientes. La puesta en marcha en Streamlit publicado no se ha comprobado en este entorno.
+
+### Capa fundamental normalizada
+
+El panel Finnhub incorpora una tabla de contratos candidatos con unidad, período, fuente, fecha de consulta y estado. [Definiciones y validaciones pendientes](docs/fundamental_contracts.md). No confunde una tasa de 25 puntos porcentuales con una fracción de 0.25: solo convierte cuando existe evidencia validada por campo. Por defecto los valores normalizados permanecen no disponibles hasta confirmar contratos; se siguen mostrando los originales.
+
+Las series anuales/trimestrales entregadas en Key Metrics conservan sus fechas económicas en una tabla independiente. No se atribuyen esas fechas a métricas TTM ni se utiliza la consulta UTC como fecha del reporte financiero. No se derivan métricas ausentes ni se sustituyen por cero. No hay DCF/precio justo y no se alimentan dividendos, puntuación o posiciones con estos datos nuevos. Para completar la validación hacen falta respuestas reales y documentación sobre unidades/definiciones; el acceso del endpoint no acredita cada indicador.
