@@ -159,3 +159,33 @@ Si falla una actualización se conserva el último resultado válido de la sesi�
 Los registros del servidor incluyen ticker, tipo de excepción, categoría y estado HTTP si está disponible. No incluyen mensajes completos de excepción, URLs, respuestas, cookies, credenciales ni cantidades. Si yfinance transforma internamente un fallo HTTP en TypeError sin adjuntar la respuesta, se clasifica como respuesta inválida y HTTP no disponible; no se inventa un código. Los campos ausentes de una respuesta estructurada se distinguen de los errores de conexión o autenticación.
 
 Se conserva yfinance 0.2.66: no se ha demostrado que cambiar de versión resuelva el incidente publicado. Las pruebas locales no prueban la recuperación de Streamlit Community Cloud. Para confirmar el incidente allí, despliega la rama después de revisarla, consulta de nuevo y facilita las líneas `Yahoo metadata ticker=... exception=... http=... category=...` del registro de Streamlit junto con fecha/hora, versión desplegada y ticker. No compartas cookies, tokens ni datos privados. Comprueba también la fecha/estado en pantalla para distinguir un dato recuperado de uno antiguo.
+
+## Finnhub gratuito: proveedor adicional en validación
+
+Implementa exclusivamente `Company Profile v2` (`/stock/profile2`) y `Key Metrics` (`/stock/metric`, `metric=all`), autorizados por el usuario para su plan gratuito. No consulta dividendos históricos, Financials As Reported ni otros endpoints hasta verificar sus permisos. [Informe de cobertura y plan](docs/finnhub_coverage.md).
+
+En **MI PORTAFOLIO → Finnhub gratuito · proveedor adicional**, activa las consultas para esta sesión. Consulta solo MSFT, META, HD, SOFI e INTU presentes en tu portafolio. BTCI/TLT y otros instrumentos no se analizan como empresas en esta fase. Yahoo, datos manuales, CSV y cálculos existentes permanecen independientes; no se sobrescribe ningún sector o dividendo con un campo sin validar.
+
+Perfil: industria, nombre, moneda, capitalización y acciones en la escala original. Industria no se convierte en sector. Métricas: extracción descriptiva por nombre candidato de P/E, forward P/E, PEG, EPS, ROE/ROIC/ROA, márgenes, crecimiento, flujo libre, deuda/patrimonio, dividendos/yield/payout. Un nombre candidato ausente no significa que no exista un equivalente; se muestran también todos los campos numéricos. Se distinguen TTM, anual, trimestral y forward. Las unidades, definición y fecha económica siguen pendientes de confirmar; la fecha de consulta no equivale al período contable. No se realizan conversiones ni fórmulas derivadas, no se usa en DCF ni en puntuación o dividendos existentes. La presencia de valores no certifica su fiabilidad económica.
+
+### Activar en Streamlit Community Cloud
+
+1. Conserva la clave fuera de GitHub. No la pegues en código, CSV o JSON ni en comentarios del PR.
+2. En tu aplicación, abre **Manage app → Settings → Secrets** (la ubicación puede variar) y añade:
+
+```toml
+FINNHUB_API_KEY = "TU_CLAVE_PRIVADA"
+```
+
+3. Guarda los secretos y reinicia la aplicación después de desplegar la rama revisada. Alternativamente, una instalación local puede usar la variable de entorno `FINNHUB_API_KEY`; no se carga automáticamente un archivo .env.
+4. Abre el panel Finnhub y activa consultas. Comprueba fuente, fecha, errores y campos recibidos por ticker. No necesitas ni debes contratar un plan de pago para estos dos endpoints autorizados.
+
+La clave se usa en `X-Finnhub-Token`, nunca en URLs, logs ni reportes. Caché por sesión/endpoint: perfil 24 horas, métricas una hora, respuestas vacías cinco minutos. Fallos 30 segundos; límites 429 respetan Retry-After y una pausa mínima de 60 segundos. Último dato válido etiquetado desactualizado. Conexión/5xx: como máximo dos intentos con espera de 0.5 s; no se reintenta inmediatamente 401/403/429. Presupuesto compartido conservador de 50 solicitudes/minuto por proceso frente al límite anunciado de 60: otras aplicaciones usando la misma clave o múltiples procesos pueden consumir cuota adicional. No se afirma tener una cuota garantizada. El botón de actualización respeta presupuesto y pausas.
+
+Validación real opcional desde la raíz (usa la clave del entorno, no consulta posiciones):
+
+```bash
+.venv/bin/python -m scripts.check_finnhub
+```
+
+Sin clave imprime diez resultados no comprobados, sin solicitudes. Con clave solicita solo los dos endpoints para los cinco tickers. No guardes informes privados en GitHub. Las pruebas automatizadas usan respuestas simuladas sin requerir claves ni red; acceso real del usuario a MSFT confirmado, valores/unidades y cobertura real de los otros tickers pendientes. La puesta en marcha en Streamlit publicado no se ha comprobado en este entorno.

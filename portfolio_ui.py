@@ -99,3 +99,6 @@ def render_portfolio():
     from intelligent_ui import render_intelligence
     with st.expander('ANÁLISIS INTELIGENTE DE PORTAFOLIO', expanded=False):
         render_intelligence(positions, quotes)
+    from finnhub_ui import render_finnhub
+    with st.expander('Finnhub gratuito · proveedor adicional', expanded=False):
+        render_finnhub(positions)
