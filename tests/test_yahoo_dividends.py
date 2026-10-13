@@ -29,6 +29,8 @@ class YahooDividendTests(unittest.TestCase):
 
     def test_history_failure_does_not_drop_dividends(self):
         from intelligent_ui import company_data
+        import streamlit as st
+        st.session_state.pop('yahoo_metadata_client',None)
         company_data.clear()
         with patch('intelligent_ui.load_prices',side_effect=RuntimeError()),patch('intelligent_ui.yf.Ticker') as ticker:
             ticker.return_value.get_info.return_value={'dividendRate':4,'sector':'Technology'}
@@ -40,12 +42,15 @@ class YahooDividendTests(unittest.TestCase):
 
     def test_provider_failure_visible(self):
         from intelligent_ui import company_data
+        import streamlit as st
+        st.session_state.pop('yahoo_metadata_client',None)
         company_data.clear()
         with patch('intelligent_ui.load_prices',side_effect=RuntimeError()),patch('intelligent_ui.yf.Ticker') as ticker:
             ticker.return_value.get_info.side_effect=RuntimeError()
             _,_,metadata,_=company_data('INTU')
             self.assertIsNone(metadata['annual'])
-            self.assertIn('falló',metadata['basis'])
+            self.assertIn('No disponible',metadata['basis'])
+            self.assertEqual(metadata['exception_type'],'RuntimeError')
         company_data.clear()
 
     def test_ui_automatic_and_manual_together(self):

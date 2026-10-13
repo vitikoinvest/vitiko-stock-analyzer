@@ -50,7 +50,7 @@ def render_distributions(positions, quotes, yahoo):
         if manual and manual.get('payment') is not None:
             payments.append({'Ticker':symbol,'Distribución confirmada por acción (USD)':manual['payment'],'Ex-dividendo':manual['ex_date'],'Fecha de pago':manual['pay_date'],'Fuente':manual['source'],'Actualización':manual['updated']})
     table=pd.DataFrame(rows)
-    for column in ('Yield TTM reportado (%)','Actualización manual','Frecuencia habitual'):
+    for column in ('Yield TTM reportado (%)','Actualización manual','Frecuencia habitual','Fecha Yahoo UTC'):
         if column in table:
             table[column]=table[column].map(lambda value: 'No disponible / no aplica' if pd.isna(value) else (f'{value:.4f}' if column == 'Yield TTM reportado (%)' else str(value)))
     numeric=table.select_dtypes('number').columns

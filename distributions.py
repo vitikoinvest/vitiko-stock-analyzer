@@ -91,4 +91,6 @@ def distribution_result(shares, average, market, manual=None, yahoo=None):
             'Fuente':record['source'] if record else 'Yahoo Finance · ' + str(yahoo_metadata.get('field') or 'dividendRate (no TTM confirmado)'),
             'Base': 'TTM manual aportado por el usuario · no verificado automáticamente' if record else yahoo_metadata.get('basis','Tasa anual reportada, no TTM confirmado'),
             'Actualización manual':record['updated'] if record else None,
-            'Frecuencia habitual':record.get('frequency','No especificada') if record else 'No disponible'}
+            'Frecuencia habitual':record.get('frequency','No especificada') if record else 'No disponible',
+            'Fecha Yahoo UTC':None if record else yahoo_metadata.get('fetched_at'),
+            'Estado Yahoo': 'No aplica · prioridad manual' if record else 'Desactualizado' if yahoo_metadata.get('stale') else 'Disponible'}
